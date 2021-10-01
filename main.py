@@ -1,4 +1,3 @@
-from os import truncate
 from sys import exit
 from random import randint
 import pygame
