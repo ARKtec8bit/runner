@@ -1,3 +1,4 @@
+from os import truncate
 from sys import exit
 from random import randint
 import pygame
@@ -19,13 +20,36 @@ def obstacle_movement(obstacle_list):
         for obstacle_rect in obstacle_list:
             obstacle_rect.x -= 4
 
-            screen.blit(snail_surf, obstacle_rect)
+            if obstacle_rect.bottom == 300:
+                screen.blit(snail_surf, obstacle_rect)
+            else:
+                screen.blit(fly_surf, obstacle_rect)
 
         obstacle_list = [obstacle for obstacle in obstacle_list if obstacle.x > -100]
 
         return obstacle_list
     else:
         return []
+
+
+def collisions(player, obstacles):
+    if obstacles:
+        for obstacle_rect in obstacles:
+            if player.colliderect(obstacle_rect):
+                return False
+    return True
+
+
+def player_animation():
+    global player_surf, player_index
+
+    if player_rect.bottom < 300:
+        player_surf = player_jump_surf
+    else:
+        player_index += 0.1
+        if player_index >= len(player_walk):
+            player_index = 0
+        player_surf = player_walk[int(player_index)]
 
 
 start_time = 0
@@ -50,12 +74,21 @@ ground_surf = pygame.image.load("graphics/ground.png").convert()
 
 
 snail_surf = pygame.image.load("graphics/snail/snail1.png").convert_alpha()
-snail_rect = snail_surf.get_rect(midbottom=(600, 300))
+fly_surf = pygame.image.load("graphics/Fly/Fly1.png").convert_alpha()
 
 obstacle_rect_list = []
 
-player_surf = pygame.image.load("graphics/Player/player_walk_1.png").convert_alpha()
-player_rect = player_surf.get_rect(midbottom=(50, 200))
+player_walk1_surf = pygame.image.load(
+    "graphics/Player/player_walk_1.png"
+).convert_alpha()
+player_walk2_surf = pygame.image.load(
+    "graphics/Player/player_walk_2.png"
+).convert_alpha()
+player_jump_surf = pygame.image.load("graphics/Player/jump.png").convert_alpha()
+player_walk = [player_walk1_surf, player_walk2_surf]
+player_index = 0
+player_surf = player_walk[player_index]
+player_rect = player_surf.get_rect(midbottom=(80, 300))
 
 player_stand = pygame.image.load("graphics/Player/player_stand.png").convert_alpha()
 player_stand = pygame.transform.rotozoom(player_stand, 0, 2)
@@ -75,11 +108,17 @@ while True:
         if event.type == pygame.QUIT:
             pygame.quit()
             exit()
+
         if game_active:
             if event.type == obstacle_timer:
-                obstacle_rect_list.append(
-                    snail_surf.get_rect(midbottom=(randint(900, 1100), 300))
-                )
+                if randint(0, 2):
+                    obstacle_rect_list.append(
+                        snail_surf.get_rect(midbottom=(randint(900, 1100), 300))
+                    )
+                else:
+                    obstacle_rect_list.append(
+                        fly_surf.get_rect(midbottom=(randint(900, 1100), 210))
+                    )
 
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_SPACE and player_on_ground:
@@ -88,16 +127,14 @@ while True:
         else:
             if event.type == pygame.KEYDOWN and event.key == pygame.K_SPACE:
                 game_active = True
-                snail_rect.x = 1000
+                # snail_rect.x = 1000
                 start_time = pygame.time.get_ticks()
 
     if game_active:
         screen.blit(sky_surf, (0, 0))
         screen.blit(ground_surf, (0, 300))
         game_score = display_score()
-
-        screen.blit(snail_surf, snail_rect)
-
+        player_animation()
         player_gravity += gravity
         player_rect.y += player_gravity
         if player_rect.bottom > 300:
@@ -107,11 +144,15 @@ while True:
 
         obstacle_rect_list = obstacle_movement(obstacle_rect_list)
 
-        if snail_rect.colliderect(player_rect):
-            game_active = False
+        game_active = collisions(player_rect, obstacle_rect_list)
+
     else:
         screen.fill((94, 129, 162))
+
         screen.blit(player_stand, player_stand_rect)
+        obstacle_rect_list.clear()
+        player_rect.midbottom = (80, 300)
+        player_gravity = 0
 
         score_message = game_font.render(
             f"Your score: {game_score}", False, (111, 196, 169)
