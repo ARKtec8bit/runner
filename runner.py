@@ -166,7 +166,6 @@ while True:
             exit()
 
         if game_active:
-
             if event.type == obstacle_timer:
                 obstacle_group.add(
                     Obstacle(
